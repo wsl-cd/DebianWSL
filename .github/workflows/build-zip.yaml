@@ -1,0 +1,58 @@
+name: Build Zip CI
+
+on:
+  push:
+    branches: [ 'main' ]
+  pull_request: 
+    branches: [ 'main' ]
+
+jobs:
+  BuildZip:
+    runs-on: ubuntu-24.04
+    env:
+      ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@main
+    - name: Install dependencies for build (Apt)
+      shell: bash
+      run: |
+        sudo env DEBIAN_FRONTEND=noninteractive apt update -y && \
+        sudo env DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libarchive-tools curl jq tree
+    - name: Build Zip x64
+      shell: bash
+      env:
+        ARCH: 'x64'
+        OUT_ZIP: 'Debian.zip'
+      run: |
+        make -e
+        sha256sum Debian.zip | tee Debian.zip.sha256
+        ls -la
+    - name: Build Zip ARM64
+      shell: bash
+      env:
+        ARCH: 'arm64'
+        OUT_ZIP: 'Debian_arm64.zip'
+      run: |
+        make -e
+        sha256sum Debian_arm64.zip | tee Debian_arm64.zip.sha256
+        ls -la
+    - name: Upload a Build Artifact x64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian.zip
+        path: ./Debian.zip
+    - name: Upload SHA256 Checksum x64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian.zip.sha256
+        path: ./Debian.zip.sha256
+    - name: Upload a Build Artifact ARM64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian_arm64.zip
+        path: ./Debian_arm64.zip
+    - name: Upload SHA256 Checksum ARM64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian_arm64.zip.sha256
+        path: ./Debian_arm64.zip.sha256

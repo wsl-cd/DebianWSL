@@ -1,0 +1,120 @@
+name: Release Zip CI
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  Build:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@main
+    - name: Install dependencies for build (Apt)
+      shell: bash
+      run: |
+        sudo env DEBIAN_FRONTEND=noninteractive apt update -y && \
+        sudo env DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends libarchive-tools curl jq tree
+    - name: Build Zip x64
+      shell: bash
+      env:
+        ARCH: 'x64'
+        OUT_ZIP: 'Debian.zip'
+      run: cd src_x64 && make -j$(nproc) -e && sha256sum Debian.zip | tee Debian.zip.sha256 && mv Debian.zip Debian.zip.sha256 ../
+    - name: Build Zip ARM64
+      shell: bash
+      env:
+        ARCH: 'arm64'
+        OUT_ZIP: 'Debian_arm64.zip'
+      run: cd src_arm64 && make -j$(nproc) -e && sha256sum Debian_arm64.zip | tee Debian_arm64.zip.sha256 && mv Debian_arm64.zip Debian_arm64.zip.sha256 ../
+    - name: Upload a Build Artifact x64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian.zip
+        path: ./Debian.zip
+    - name: Upload SHA256 Checksum x64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian.zip.sha256
+        path: ./Debian.zip.sha256
+    - name: Upload a Build Artifact ARM64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian_arm64.zip
+        path: ./Debian_arm64.zip
+    - name: Upload SHA256 Checksum ARM64
+      uses: actions/upload-artifact@main
+      with:
+        name: Debian_arm64.zip.sha256
+        path: ./Debian_arm64.zip.sha256
+
+  Release:
+    needs: [Build]
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Download Build Artifact x64
+      uses: actions/download-artifact@main
+      with:
+        name: Debian.zip
+    - name: Download SHA256 Checksum x64
+      uses: actions/download-artifact@main
+      with:
+        name: Debian.zip.sha256
+    - name: Download Build Artifact arm64
+      uses: actions/download-artifact@main
+      with:
+        name: Debian_arm64.zip
+    - name: Download SHA256 Checksum arm64
+      uses: actions/download-artifact@main
+      with:
+        name: Debian_arm64.zip.sha256
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset x64
+      id: upload-release-asset-x64 
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Debian.zip
+        asset_name: Debian.zip
+        asset_content_type: application/zip
+    - name: Upload Release Asset SHA256 Checksum x64
+      id: upload-release-asset-sha256-x64
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Debian.zip.sha256
+        asset_name: Debian.zip.sha256
+        asset_content_type: text/plain
+    - name: Upload Release Asset arm64
+      id: upload-release-asset-arm64
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Debian_arm64.zip
+        asset_name: Debian_arm64.zip
+        asset_content_type: application/zip
+    - name: Upload Release Asset SHA256 Checksum arm64
+      id: upload-release-asset-sha256-arm64
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Debian_arm64.zip.sha256
+        asset_name: Debian_arm64.zip.sha256
+        asset_content_type: text/plain
