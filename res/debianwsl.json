@@ -4,7 +4,6 @@
     "description": "Install DebianWSL as a WSL Instance",
     "homepage": "https://github.com/wsl-cd/DebianWSL",
     "license": "MIT",
-    "notes": "Even when you are logging in as 'root', some operations (like service command) require Windows administrator privileges",
     "url": "https://github.com/wsl-cd/DebianWSL/releases/download/12.10.20250516/Debian.zip",
     "hash": "5b1fef2609587e2fe0560f573835d8762e4c5414c28e066368e32171a61fc8cd",
     "post_install": [
@@ -37,12 +36,6 @@
         ]
     },
     "bin": "Debian.exe",
-    "shortcuts": [
-        [
-            "Debian.exe",
-            "Debian Linux"
-        ]
-    ],
     "persist": "data",
     "checkver": {
         "url": "https://github.com/wsl-cd/DebianWSL/releases/latest",
